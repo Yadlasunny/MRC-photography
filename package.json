@@ -1,0 +1,28 @@
+{
+  "name": "mrc-photography",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "node --watch server/index.js",
+    "dev:all": "concurrently -n vite,api -c blue,magenta \"npm:dev\" \"npm:dev:server\"",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "preview": "vite preview",
+    "set-admin-password": "node scripts/set-admin-password.js"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3",
+    "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.0",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "multer": "^2.2.0"
+  }
+}

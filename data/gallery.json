@@ -1,0 +1,65 @@
+[
+  {
+    "id": "seed-01",
+    "filename": "wedding-01.jpg",
+    "category": "wedding",
+    "categoryLabel": "Wedding",
+    "alt": "Bride and groom exchanging garlands during the wedding ceremony"
+  },
+  {
+    "id": "seed-02",
+    "filename": "wedding-02.jpg",
+    "category": "wedding",
+    "categoryLabel": "Wedding",
+    "alt": "Candid shot of the couple laughing during the reception"
+  },
+  {
+    "id": "seed-03",
+    "filename": "birthday-01.jpg",
+    "category": "birthday",
+    "categoryLabel": "Birthday",
+    "alt": "Child blowing out candles on a birthday cake"
+  },
+  {
+    "id": "seed-04",
+    "filename": "wedding-03.jpg",
+    "category": "wedding",
+    "categoryLabel": "Wedding",
+    "alt": "Wide shot of the wedding mandap decorated with flowers"
+  },
+  {
+    "id": "seed-05",
+    "filename": "maternity-01.jpg",
+    "category": "maternity-baby",
+    "categoryLabel": "Maternity & Baby",
+    "alt": "Expecting mother posing outdoors during golden hour"
+  },
+  {
+    "id": "seed-06",
+    "filename": "modeling-01.jpg",
+    "category": "modeling",
+    "categoryLabel": "Modeling",
+    "alt": "Portfolio portrait shot against a studio backdrop"
+  },
+  {
+    "id": "seed-07",
+    "filename": "baby-01.jpg",
+    "category": "maternity-baby",
+    "categoryLabel": "Maternity & Baby",
+    "alt": "Newborn baby sleeping wrapped in a soft blanket"
+  },
+  {
+    "id": "seed-08",
+    "filename": "birthday-02.jpg",
+    "category": "birthday",
+    "categoryLabel": "Birthday",
+    "alt": "Group photo of guests celebrating at a birthday party"
+  },
+  {
+    "id": "seed-09",
+    "filename": "modeling-02.jpg",
+    "category": "modeling",
+    "categoryLabel": "Modeling",
+    "alt": "Fashion look-book shot on location"
+  }
+]

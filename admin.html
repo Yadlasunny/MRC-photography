@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Admin — MRC Photography</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body class="admin-body">
+
+  <header class="admin-nav">
+    <div class="container">
+      <a href="/" class="logo-mark">MRC <span>PHOTOGRAPHY</span></a>
+      <button class="btn btn-ghost" id="logout-btn" hidden>Log Out</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="container">
+
+      <!-- ============ LOGIN ============ -->
+      <section id="login-view" class="admin-panel admin-panel--narrow">
+        <p class="eyebrow">Admin</p>
+        <h1 class="section-title">Sign In</h1>
+        <form id="login-form" class="admin-form">
+          <label>
+            Username
+            <input type="text" name="username" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <p class="admin-error" id="login-error" hidden></p>
+          <button type="submit" class="btn btn-primary">Sign In</button>
+        </form>
+      </section>
+
+      <!-- ============ DASHBOARD ============ -->
+      <section id="dashboard-view" class="admin-panel" hidden>
+        <p class="eyebrow">Admin</p>
+        <h1 class="section-title">Manage Gallery Photos</h1>
+
+        <form id="upload-form" class="admin-form admin-form--upload">
+          <label>
+            Photo (JPEG, PNG, or WEBP, up to 8MB)
+            <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required />
+          </label>
+          <label>
+            Category
+            <select name="category" required>
+              <option value="wedding">Wedding</option>
+              <option value="birthday">Birthday</option>
+              <option value="maternity-baby">Maternity &amp; Baby</option>
+              <option value="modeling">Modeling</option>
+            </select>
+          </label>
+          <label>
+            Description (for screen readers / alt text)
+            <input type="text" name="alt" placeholder="e.g. Bride and groom on the dance floor" />
+          </label>
+          <p class="admin-error" id="upload-error" hidden></p>
+          <button type="submit" class="btn btn-primary">Add Photo</button>
+        </form>
+
+        <div class="admin-photo-list" id="photo-list"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <script type="module" src="/js/admin.js"></script>
+</body>
+</html>

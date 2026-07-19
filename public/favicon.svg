@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#0c0b0d"/>
+  <g fill="none" stroke="#c2a162" stroke-width="2.4">
+    <path d="M6 16V6h10"/>
+    <path d="M58 16V6H48"/>
+    <path d="M6 48v10h10"/>
+    <path d="M58 48v10H48"/>
+  </g>
+  <text x="32" y="41" font-family="Georgia, 'Times New Roman', serif" font-size="24" fill="#ede7de" text-anchor="middle">MRC</text>
+</svg>
