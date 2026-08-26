@@ -1,13 +1,9 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
+import { del } from "@vercel/blob";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.join(__dirname, "..");
+import { redis } from "./upstash.js";
 
-export const IMAGES_DIR = path.join(rootDir, "assets", "images");
-const GALLERY_FILE = path.join(rootDir, "data", "gallery.json");
+const GALLERY_KEY = "mrc:gallery";
 
 export const CATEGORIES = {
   wedding: "Wedding",
@@ -17,19 +13,20 @@ export const CATEGORIES = {
 };
 
 export async function readGallery() {
-  const raw = await fs.readFile(GALLERY_FILE, "utf8");
-  return JSON.parse(raw);
+  const raw = await redis.get(GALLERY_KEY);
+  if (!raw) return [];
+  return typeof raw === "string" ? JSON.parse(raw) : raw;
 }
 
 export async function writeGallery(list) {
-  await fs.writeFile(GALLERY_FILE, JSON.stringify(list, null, 2));
+  await redis.set(GALLERY_KEY, JSON.stringify(list));
 }
 
-export async function addPhoto({ filename, category, alt }) {
+export async function addPhoto({ url, category, alt }) {
   const list = await readGallery();
   const entry = {
     id: randomUUID(),
-    filename,
+    url,
     category,
     categoryLabel: CATEGORIES[category],
     alt: alt || `${CATEGORIES[category]} photo`,
@@ -47,11 +44,12 @@ export async function removePhoto(id) {
   const [removed] = list.splice(index, 1);
   await writeGallery(list);
 
-  const filePath = path.join(IMAGES_DIR, removed.category, removed.filename);
   try {
-    await fs.unlink(filePath);
+    await del(removed.url);
   } catch (err) {
-    if (err.code !== "ENOENT") throw err;
+    // The gallery entry is already gone; don't fail the request over a
+    // blob that may already have been deleted.
+    console.error("Failed to delete blob for removed photo:", err);
   }
 
   return removed;

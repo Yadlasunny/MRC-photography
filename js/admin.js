@@ -1,3 +1,5 @@
+import { upload } from "@vercel/blob/client";
+
 const loginView = document.getElementById("login-view");
 const dashboardView = document.getElementById("dashboard-view");
 const logoutBtn = document.getElementById("logout-btn");
@@ -84,11 +86,40 @@ uploadForm.addEventListener("submit", async (e) => {
   uploadError.hidden = true;
 
   const formData = new FormData(uploadForm);
-  const res = await fetch("/api/gallery", { method: "POST", body: formData });
+  const file = formData.get("photo");
+  const category = formData.get("category");
+  const alt = formData.get("alt");
 
-  if (!res.ok) {
-    const { error } = await res.json().catch(() => ({ error: "Upload failed." }));
-    uploadError.textContent = error;
+  if (!file || !file.size) {
+    uploadError.textContent = "Photo file is required.";
+    uploadError.hidden = false;
+    return;
+  }
+
+  try {
+    // Uploaded directly from the browser to Blob storage (not through this
+    // server), so a full-quality photo never hits the request-size limit
+    // a serverless function would otherwise enforce.
+    const blob = await upload(`images/${category}/${file.name}`, file, {
+      access: "public",
+      handleUploadUrl: "/api/blob-upload",
+      clientPayload: JSON.stringify({ category }),
+    });
+
+    const res = await fetch("/api/gallery", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: blob.url, category, alt }),
+    });
+
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: "Upload failed." }));
+      uploadError.textContent = error;
+      uploadError.hidden = false;
+      return;
+    }
+  } catch (err) {
+    uploadError.textContent = err.message || "Upload failed.";
     uploadError.hidden = false;
     return;
   }
@@ -134,7 +165,7 @@ function renderPhotoCard(entry) {
   const card = document.createElement("div");
   card.className = "admin-photo-card";
   card.innerHTML = `
-    <img src="/assets/images/${entry.category}/${entry.filename}" alt="${entry.alt}" loading="lazy" />
+    <img src="${entry.url}" alt="${entry.alt}" loading="lazy" />
     <div class="admin-photo-meta">
       <span class="admin-photo-category">${CATEGORY_LABELS[entry.category] || entry.category}</span>
       <button type="button" class="admin-delete-btn" data-id="${entry.id}">Delete</button>

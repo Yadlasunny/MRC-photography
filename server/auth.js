@@ -1,9 +1,63 @@
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 
-import { readEnvFile, writeEnvFile, setEnvValue } from "./env-file.js";
+import { redis } from "./upstash.js";
+
+const ADMIN_KEY = "mrc:admin";
+const COOKIE_NAME = "mrc_auth";
+const MAX_AGE_MS = 1000 * 60 * 60 * 8; // 8 hours
+
+// Sessions have to be stateless (a signed, self-contained cookie) rather
+// than server-side (like express-session's default MemoryStore) because
+// serverless invocations don't share memory between requests.
+function sign(payload) {
+  return crypto.createHmac("sha256", process.env.SESSION_SECRET).update(payload).digest("base64url");
+}
+
+function createToken() {
+  const payload = Buffer.from(JSON.stringify({ exp: Date.now() + MAX_AGE_MS })).toString("base64url");
+  return `${payload}.${sign(payload)}`;
+}
+
+function isValidToken(token) {
+  if (!token || typeof token !== "string") return false;
+  const [payload, signature] = token.split(".");
+  if (!payload || !signature) return false;
+
+  const expected = sign(payload);
+  const actual = Buffer.from(signature);
+  const wanted = Buffer.from(expected);
+  if (actual.length !== wanted.length || !crypto.timingSafeEqual(actual, wanted)) return false;
+
+  try {
+    const { exp } = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    return typeof exp === "number" && Date.now() < exp;
+  } catch {
+    return false;
+  }
+}
+
+function cookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: MAX_AGE_MS,
+  };
+}
+
+async function readAdmin() {
+  const raw = await redis.get(ADMIN_KEY);
+  if (!raw) return null;
+  return typeof raw === "string" ? JSON.parse(raw) : raw;
+}
+
+async function writeAdmin(admin) {
+  await redis.set(ADMIN_KEY, JSON.stringify(admin));
+}
 
 export function requireAuth(req, res, next) {
-  if (req.session?.authenticated) return next();
+  if (isValidToken(req.cookies?.[COOKIE_NAME])) return next();
   res.status(401).json({ error: "Not signed in." });
 }
 
@@ -14,35 +68,34 @@ export async function login(req, res) {
     return res.status(400).json({ error: "Username and password are required." });
   }
 
-  const validUsername = username === process.env.ADMIN_USERNAME;
+  const admin = await readAdmin();
+  if (!admin) {
+    return res.status(500).json({
+      error: "No admin account is set up yet. Run: node scripts/set-admin-password.js",
+    });
+  }
+
+  const validUsername = username === admin.username;
   // Always run bcrypt.compare, even on a bad username, so response timing
   // doesn't reveal whether the username was correct.
-  const hash = validUsername ? process.env.ADMIN_PASSWORD_HASH : "$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva";
+  const hash = validUsername ? admin.passwordHash : "$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva";
   const validPassword = await bcrypt.compare(password, hash);
 
   if (!validUsername || !validPassword) {
     return res.status(401).json({ error: "Incorrect username or password." });
   }
 
-  req.session.regenerate((err) => {
-    if (err) return res.status(500).json({ error: "Could not start session." });
-    req.session.authenticated = true;
-    req.session.save((saveErr) => {
-      if (saveErr) return res.status(500).json({ error: "Could not save session." });
-      res.json({ authenticated: true });
-    });
-  });
+  res.cookie(COOKIE_NAME, createToken(), cookieOptions());
+  res.json({ authenticated: true });
 }
 
 export function logout(req, res) {
-  req.session.destroy(() => {
-    res.clearCookie("mrc.sid");
-    res.json({ authenticated: false });
-  });
+  res.clearCookie(COOKIE_NAME);
+  res.json({ authenticated: false });
 }
 
 export function sessionStatus(req, res) {
-  res.json({ authenticated: !!req.session?.authenticated });
+  res.json({ authenticated: isValidToken(req.cookies?.[COOKIE_NAME]) });
 }
 
 export async function changePassword(req, res) {
@@ -55,15 +108,14 @@ export async function changePassword(req, res) {
     return res.status(400).json({ error: "New password must be at least 8 characters." });
   }
 
-  const validCurrent = await bcrypt.compare(currentPassword, process.env.ADMIN_PASSWORD_HASH);
+  const admin = await readAdmin();
+  const validCurrent = admin && (await bcrypt.compare(currentPassword, admin.passwordHash));
   if (!validCurrent) {
     return res.status(401).json({ error: "Current password is incorrect." });
   }
 
   const newHash = await bcrypt.hash(newPassword, 12);
-  const envContents = await readEnvFile();
-  await writeEnvFile(setEnvValue(envContents, "ADMIN_PASSWORD_HASH", newHash));
-  process.env.ADMIN_PASSWORD_HASH = newHash;
+  await writeAdmin({ username: admin.username, passwordHash: newHash });
 
   res.json({ success: true });
 }

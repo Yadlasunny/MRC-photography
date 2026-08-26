@@ -1,14 +1,18 @@
-// Sets the admin username + password, hashes the password with bcrypt, and
-// writes both into .env (creating it from .env.example if it doesn't exist
-// yet).
+// Creates or resets the admin account, stored in Upstash Redis (not .env —
+// serverless functions can't write to their own filesystem at runtime).
+// Needs UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN in the environment;
+// for the deployed (production) store, get these locally with:
+//   vercel env pull
 //
-// Interactive:     node scripts/set-admin-password.js
-// Non-interactive:  printf "username\npassword\n" | node scripts/set-admin-password.js
+// Interactive:      node scripts/set-admin-password.js
+// Non-interactive:   printf "username\npassword\n" | node scripts/set-admin-password.js
+import "dotenv/config";
 import readline from "node:readline";
-import fs from "node:fs";
 import bcrypt from "bcryptjs";
 
-import { envPath, envExamplePath, setEnvValue } from "../server/env-file.js";
+import { redis } from "../server/upstash.js";
+
+const ADMIN_KEY = "mrc:admin";
 
 function ask(rl, question) {
   return new Promise((resolve) => rl.question(question, resolve));
@@ -63,11 +67,11 @@ async function promptCredentials() {
 }
 
 async function main() {
-  if (!fs.existsSync(envPath)) {
-    fs.copyFileSync(envExamplePath, envPath);
+  for (const required of ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]) {
+    if (!process.env[required]) {
+      throw new Error(`Missing ${required} — run "vercel env pull" first.`);
+    }
   }
-
-  let envContents = fs.readFileSync(envPath, "utf8");
 
   const { username, password } = await promptCredentials();
 
@@ -78,19 +82,10 @@ async function main() {
     throw new Error("Password must be at least 8 characters.");
   }
 
-  if (!/SESSION_SECRET=.+/.test(envContents)) {
-    const { randomBytes } = await import("node:crypto");
-    envContents = setEnvValue(envContents, "SESSION_SECRET", randomBytes(48).toString("hex"));
-  }
+  const passwordHash = await bcrypt.hash(password, 12);
+  await redis.set(ADMIN_KEY, JSON.stringify({ username, passwordHash }));
 
-  const hash = await bcrypt.hash(password, 12);
-
-  envContents = setEnvValue(envContents, "ADMIN_USERNAME", username);
-  envContents = setEnvValue(envContents, "ADMIN_PASSWORD_HASH", hash);
-
-  fs.writeFileSync(envPath, envContents);
-
-  console.log(`\nSaved. Admin username "${username}" is set in .env — restart the server for it to take effect.`);
+  console.log(`\nSaved. Admin username "${username}" is set — sign in at /admin.html.`);
 }
 
 main().catch((err) => {
