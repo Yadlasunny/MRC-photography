@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { del } from "@vercel/blob";
 
-import { redis } from "./upstash.js";
+import { getRedisClient } from "./redis-client.js";
 
 const GALLERY_KEY = "mrc:gallery";
 
@@ -13,12 +13,14 @@ export const CATEGORIES = {
 };
 
 export async function readGallery() {
+  const redis = await getRedisClient();
   const raw = await redis.get(GALLERY_KEY);
   if (!raw) return [];
   return typeof raw === "string" ? JSON.parse(raw) : raw;
 }
 
 export async function writeGallery(list) {
+  const redis = await getRedisClient();
   await redis.set(GALLERY_KEY, JSON.stringify(list));
 }
 

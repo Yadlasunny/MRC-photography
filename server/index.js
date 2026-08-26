@@ -2,11 +2,17 @@
 // Vercel Function via api/index.js — see that file and server/app.js.
 import "dotenv/config";
 
-for (const required of ["SESSION_SECRET", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "BLOB_READ_WRITE_TOKEN"]) {
+// BLOB_READ_WRITE_TOKEN is intentionally not required here: without it the
+// server still boots and login/gallery-viewing work fine — only uploading
+// or deleting a photo will fail until Blob storage is connected.
+for (const required of ["SESSION_SECRET", "REDIS_URL"]) {
   if (!process.env[required]) {
     console.error(`Missing ${required} in .env — see .env.example.`);
     process.exit(1);
   }
+}
+if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  console.warn("BLOB_READ_WRITE_TOKEN is not set — photo upload/delete will fail until Blob storage is connected.");
 }
 
 const { default: app } = await import("./app.js");

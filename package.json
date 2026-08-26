@@ -17,13 +17,13 @@
     "vite": "^5.4.0"
   },
   "dependencies": {
-    "@upstash/redis": "^1.35.5",
     "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.0",
-    "helmet": "^8.3.0"
+    "helmet": "^8.3.0",
+    "redis": "^4.7.0"
   }
 }

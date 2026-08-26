@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 
-import { redis } from "./upstash.js";
+import { getRedisClient } from "./redis-client.js";
 
 const ADMIN_KEY = "mrc:admin";
 const COOKIE_NAME = "mrc_auth";
@@ -47,12 +47,14 @@ function cookieOptions() {
 }
 
 async function readAdmin() {
+  const redis = await getRedisClient();
   const raw = await redis.get(ADMIN_KEY);
   if (!raw) return null;
   return typeof raw === "string" ? JSON.parse(raw) : raw;
 }
 
 async function writeAdmin(admin) {
+  const redis = await getRedisClient();
   await redis.set(ADMIN_KEY, JSON.stringify(admin));
 }
 

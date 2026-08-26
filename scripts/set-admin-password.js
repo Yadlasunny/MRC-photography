@@ -1,7 +1,7 @@
-// Creates or resets the admin account, stored in Upstash Redis (not .env —
+// Creates or resets the admin account, stored in Redis (not .env —
 // serverless functions can't write to their own filesystem at runtime).
-// Needs UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN in the environment;
-// for the deployed (production) store, get these locally with:
+// Needs REDIS_URL in the environment; for the deployed (production) store,
+// get it locally with:
 //   vercel env pull
 //
 // Interactive:      node scripts/set-admin-password.js
@@ -10,7 +10,7 @@ import "dotenv/config";
 import readline from "node:readline";
 import bcrypt from "bcryptjs";
 
-import { redis } from "../server/upstash.js";
+import { getRedisClient } from "../server/redis-client.js";
 
 const ADMIN_KEY = "mrc:admin";
 
@@ -67,10 +67,8 @@ async function promptCredentials() {
 }
 
 async function main() {
-  for (const required of ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"]) {
-    if (!process.env[required]) {
-      throw new Error(`Missing ${required} — run "vercel env pull" first.`);
-    }
+  if (!process.env.REDIS_URL) {
+    throw new Error(`Missing REDIS_URL — run "vercel env pull" first.`);
   }
 
   const { username, password } = await promptCredentials();
@@ -83,7 +81,9 @@ async function main() {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
+  const redis = await getRedisClient();
   await redis.set(ADMIN_KEY, JSON.stringify({ username, passwordHash }));
+  await redis.quit();
 
   console.log(`\nSaved. Admin username "${username}" is set — sign in at /admin.html.`);
 }
