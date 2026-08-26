@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
 
+import { readEnvFile, writeEnvFile, setEnvValue } from "./env-file.js";
+
 export function requireAuth(req, res, next) {
   if (req.session?.authenticated) return next();
   res.status(401).json({ error: "Not signed in." });
@@ -41,4 +43,27 @@ export function logout(req, res) {
 
 export function sessionStatus(req, res) {
   res.json({ authenticated: !!req.session?.authenticated });
+}
+
+export async function changePassword(req, res) {
+  const { currentPassword, newPassword } = req.body || {};
+
+  if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
+    return res.status(400).json({ error: "Current and new password are required." });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: "New password must be at least 8 characters." });
+  }
+
+  const validCurrent = await bcrypt.compare(currentPassword, process.env.ADMIN_PASSWORD_HASH);
+  if (!validCurrent) {
+    return res.status(401).json({ error: "Current password is incorrect." });
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 12);
+  const envContents = await readEnvFile();
+  await writeEnvFile(setEnvValue(envContents, "ADMIN_PASSWORD_HASH", newHash));
+  process.env.ADMIN_PASSWORD_HASH = newHash;
+
+  res.json({ success: true });
 }

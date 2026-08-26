@@ -66,6 +66,47 @@
   border-color: var(--brass);
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 2.8rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  transition: color 0.2s var(--ease);
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  color: var(--brass);
+}
+
+.password-toggle::before {
+  content: "";
+  display: block;
+  width: 19px;
+  height: 19px;
+  background-color: currentColor;
+  -webkit-mask: var(--icon-eye) center / contain no-repeat;
+  mask: var(--icon-eye) center / contain no-repeat;
+}
+
+.password-toggle[aria-pressed="true"]::before {
+  -webkit-mask-image: var(--icon-eye-off);
+  mask-image: var(--icon-eye-off);
+}
+
 .admin-form button {
   align-self: flex-start;
 }
@@ -73,6 +114,25 @@
 .admin-error {
   color: #e08585;
   font-size: 0.85rem;
+}
+
+.admin-success {
+  color: var(--brass);
+  font-size: 0.85rem;
+}
+
+.admin-password-panel {
+  max-width: 380px;
+  margin-top: 3.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid rgba(194, 161, 98, 0.15);
+}
+
+.admin-subtitle {
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 1.3rem;
+  margin: 0 0 1.6rem;
 }
 
 .admin-form--upload {

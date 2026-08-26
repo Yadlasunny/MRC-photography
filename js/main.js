@@ -105,7 +105,7 @@ function renderGallery(entries) {
     item.dataset.id = entry.id;
 
     const img = document.createElement("img");
-    img.src = `/assets/images/${entry.filename}`;
+    img.src = `/assets/images/${entry.category}/${entry.filename}`;
     img.alt = entry.alt;
     img.loading = "lazy";
     img.addEventListener("error", () => buildFallback(item, entry), { once: true });

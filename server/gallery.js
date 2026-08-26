@@ -47,7 +47,7 @@ export async function removePhoto(id) {
   const [removed] = list.splice(index, 1);
   await writeGallery(list);
 
-  const filePath = path.join(IMAGES_DIR, removed.filename);
+  const filePath = path.join(IMAGES_DIR, removed.category, removed.filename);
   try {
     await fs.unlink(filePath);
   } catch (err) {

@@ -1,28 +1,20 @@
-// Interactive setup: prompts for an admin username + password, hashes the
-// password with bcrypt, and writes both into .env (creating it from
-// .env.example if it doesn't exist yet). Run with: node scripts/set-admin-password.js
+// Sets the admin username + password, hashes the password with bcrypt, and
+// writes both into .env (creating it from .env.example if it doesn't exist
+// yet).
+//
+// Interactive:     node scripts/set-admin-password.js
+// Non-interactive:  printf "username\npassword\n" | node scripts/set-admin-password.js
 import readline from "node:readline";
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.join(__dirname, "..");
-const envPath = path.join(rootDir, ".env");
-const envExamplePath = path.join(rootDir, ".env.example");
+import { envPath, envExamplePath, setEnvValue } from "../server/env-file.js";
 
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-
-function ask(question) {
+function ask(rl, question) {
   return new Promise((resolve) => rl.question(question, resolve));
 }
 
-function askHidden(question) {
-  // Only mask keystrokes on a real interactive TTY; piped/redirected stdin
-  // (e.g. from a script) doesn't echo characters anyway.
-  if (!process.stdin.isTTY) return ask(question);
-
+function askHidden(rl, question) {
   return new Promise((resolve) => {
     let masked = false;
     const original = rl._writeToOutput?.bind(rl);
@@ -40,13 +32,34 @@ function askHidden(question) {
   });
 }
 
-function setEnvValue(contents, key, value) {
-  const line = `${key}=${value}`;
-  const pattern = new RegExp(`^${key}=.*$`, "m");
-  if (pattern.test(contents)) {
-    return contents.replace(pattern, line);
+// readline's rl.question() is meant for a real TTY: with piped/redirected
+// stdin, the whole input arrives as one buffered chunk and a second
+// question() call can miss it entirely. So for non-interactive use, read
+// the raw stream ourselves instead — first line is the username, second
+// is the password.
+function readStdinLines() {
+  return new Promise((resolve) => {
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => (data += chunk));
+    process.stdin.on("end", () => resolve(data.split(/\r?\n/)));
+  });
+}
+
+async function promptCredentials() {
+  if (!process.stdin.isTTY) {
+    const [username = "", password = ""] = await readStdinLines();
+    return { username: username.trim(), password };
   }
-  return `${contents.trim()}\n${line}\n`;
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const username = (await ask(rl, "Admin username: ")).trim();
+    const password = await askHidden(rl, "Admin password (input hidden): ");
+    return { username, password };
+  } finally {
+    rl.close();
+  }
 }
 
 async function main() {
@@ -56,12 +69,11 @@ async function main() {
 
   let envContents = fs.readFileSync(envPath, "utf8");
 
-  const username = (await ask("Admin username: ")).trim();
+  const { username, password } = await promptCredentials();
+
   if (!username) {
     throw new Error("Username cannot be empty.");
   }
-
-  const password = await askHidden("Admin password (input hidden): ");
   if (!password || password.length < 8) {
     throw new Error("Password must be at least 8 characters.");
   }
@@ -81,9 +93,7 @@ async function main() {
   console.log(`\nSaved. Admin username "${username}" is set in .env — restart the server for it to take effect.`);
 }
 
-main()
-  .catch((err) => {
-    console.error("Failed to set admin password:", err.message);
-    process.exitCode = 1;
-  })
-  .finally(() => rl.close());
+main().catch((err) => {
+  console.error("Failed to set admin password:", err.message);
+  process.exitCode = 1;
+});

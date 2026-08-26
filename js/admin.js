@@ -9,6 +9,20 @@ const uploadForm = document.getElementById("upload-form");
 const uploadError = document.getElementById("upload-error");
 const photoList = document.getElementById("photo-list");
 
+const passwordForm = document.getElementById("password-form");
+const passwordError = document.getElementById("password-error");
+const passwordSuccess = document.getElementById("password-success");
+
+document.querySelectorAll(".password-toggle").forEach((toggle) => {
+  const input = toggle.previousElementSibling;
+  toggle.addEventListener("click", () => {
+    const isVisible = input.type === "text";
+    input.type = isVisible ? "password" : "text";
+    toggle.setAttribute("aria-pressed", String(!isVisible));
+    toggle.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
+  });
+});
+
 const CATEGORY_LABELS = {
   wedding: "Wedding",
   birthday: "Birthday",
@@ -83,11 +97,44 @@ uploadForm.addEventListener("submit", async (e) => {
   loadPhotos();
 });
 
+passwordForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  passwordError.hidden = true;
+  passwordSuccess.hidden = true;
+
+  const formData = new FormData(passwordForm);
+  const currentPassword = formData.get("currentPassword");
+  const newPassword = formData.get("newPassword");
+  const confirmPassword = formData.get("confirmPassword");
+
+  if (newPassword !== confirmPassword) {
+    passwordError.textContent = "New passwords do not match.";
+    passwordError.hidden = false;
+    return;
+  }
+
+  const res = await fetch("/api/change-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+
+  if (!res.ok) {
+    const { error } = await res.json().catch(() => ({ error: "Could not update password." }));
+    passwordError.textContent = error;
+    passwordError.hidden = false;
+    return;
+  }
+
+  passwordForm.reset();
+  passwordSuccess.hidden = false;
+});
+
 function renderPhotoCard(entry) {
   const card = document.createElement("div");
   card.className = "admin-photo-card";
   card.innerHTML = `
-    <img src="/assets/images/${entry.filename}" alt="${entry.alt}" loading="lazy" />
+    <img src="/assets/images/${entry.category}/${entry.filename}" alt="${entry.alt}" loading="lazy" />
     <div class="admin-photo-meta">
       <span class="admin-photo-category">${CATEGORY_LABELS[entry.category] || entry.category}</span>
       <button type="button" class="admin-delete-btn" data-id="${entry.id}">Delete</button>

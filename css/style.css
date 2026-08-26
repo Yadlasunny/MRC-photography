@@ -21,10 +21,20 @@
   --radius: 2px;
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --icon-eye: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+  --icon-eye-off: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17.94 17.94A10.94 10.94 0 0112 19c-7 0-11-7-11-7a21.8 21.8 0 015.06-6.06M9.9 4.24A10.94 10.94 0 0112 4c7 0 11 7 11 7a21.8 21.8 0 01-3.22 4.4M14.12 14.12a3 3 0 11-4.24-4.24'/%3E%3Cline x1='1' y1='1' x2='23' y2='23'/%3E%3C/svg%3E");
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Elements like .btn set their own `display`, which otherwise wins over the
+   browser's native `[hidden] { display: none }` rule (equal specificity,
+   author styles beat the UA stylesheet) and leaves them visible. */
+[hidden] {
+  display: none !important;
 }
 
 html {
@@ -75,6 +85,10 @@ ul {
 button {
   font-family: inherit;
   cursor: pointer;
+  background: none;
+  border: none;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .container {
@@ -174,6 +188,7 @@ section {
 }
 
 .btn-ghost {
+  background: transparent;
   border-color: var(--ink-muted);
   color: var(--ink);
 }
@@ -481,28 +496,49 @@ section {
    ============================================================ */
 
 .products-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1.5rem;
 }
 
 .product-card {
+  flex: 1 1 260px;
+  max-width: 320px;
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 2.4rem 1.5rem;
   background: var(--bg-panel);
-  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  border-top: 1px solid rgba(194, 161, 98, 0.15);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease);
 }
 
 .product-card:hover {
   transform: translateY(-4px);
+  border-top-color: var(--brass);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
+.product-icon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(194, 161, 98, 0.3);
+  border-radius: 50%;
+  transition: border-color 0.3s var(--ease), background 0.3s var(--ease);
+}
+
+.product-card:hover .product-icon {
+  border-color: var(--brass);
+  background: rgba(194, 161, 98, 0.08);
+}
+
 .product-card svg {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   color: var(--brass);
-  margin: 0 auto 1rem;
 }
 
 .product-card h3 {
@@ -719,10 +755,6 @@ section {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .products-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .gallery-item {
     height: clamp(48vh, 64vh, 700px);
   }
@@ -792,8 +824,9 @@ section {
     grid-template-columns: 1fr;
   }
 
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .product-card {
+    flex-basis: 45%;
+    padding: 1.8rem 1rem;
   }
 
   .gallery-item {
