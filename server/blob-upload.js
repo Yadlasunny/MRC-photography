@@ -1,6 +1,6 @@
 import { handleUpload } from "@vercel/blob/client";
 
-import { CATEGORIES } from "./gallery.js";
+import { readCategories } from "./gallery.js";
 
 const MAX_UPLOAD_MB = 50;
 
@@ -19,7 +19,8 @@ export async function handleBlobUpload(req, res) {
         } catch {
           // falls through to the validation below
         }
-        if (!Object.keys(CATEGORIES).includes(category)) {
+        const categories = await readCategories();
+        if (!Object.keys(categories).includes(category)) {
           throw new Error("Unknown category.");
         }
 
@@ -28,7 +29,7 @@ export async function handleBlobUpload(req, res) {
           addRandomSuffix: true,
           maximumSizeInBytes: MAX_UPLOAD_MB * 1024 * 1024,
           // On Vercel this is inferred automatically from VERCEL_URL. Locally
-          // there's no public URL for Blob to call back — onUploadCompleted
+          // there's no public URL for Blob to call back - onUploadCompleted
           // is a no-op anyway (metadata is saved via a separate client
           // request), so any syntactically valid URL satisfies the SDK here.
           ...(process.env.VERCEL ? {} : { callbackUrl: "http://localhost/unused" }),

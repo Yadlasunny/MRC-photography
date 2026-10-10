@@ -5,8 +5,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 
-import { requireAuth, login, logout, sessionStatus, changePassword } from "./auth.js";
-import { readGallery, addPhoto, removePhoto, CATEGORIES } from "./gallery.js";
+import { requireAuth, login, logout, sessionStatus } from "./auth.js";
+import { readGallery, addPhoto, removePhoto, readCategories, addCategory, removeCategory } from "./gallery.js";
 import { handleBlobUpload } from "./blob-upload.js";
 
 const app = express();
@@ -36,14 +36,6 @@ const loginLimiter = rateLimit({
   message: { error: "Too many login attempts. Try again in a few minutes." },
 });
 
-const passwordChangeLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 8,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many attempts. Try again in a few minutes." },
-});
-
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 40,
@@ -56,15 +48,40 @@ const uploadLimiter = rateLimit({
 app.post("/api/login", loginLimiter, login);
 app.post("/api/logout", logout);
 app.get("/api/session", sessionStatus);
-app.post("/api/change-password", requireAuth, passwordChangeLimiter, changePassword);
 
 // ---- Gallery ----
 app.get("/api/gallery", async (req, res) => {
   res.json(await readGallery());
 });
 
-app.get("/api/gallery/categories", requireAuth, (req, res) => {
-  res.json(CATEGORIES);
+// Public so the site's gallery filter buttons can reflect whatever
+// categories the admin has created, not just the ones baked into the HTML.
+app.get("/api/gallery/categories", async (req, res) => {
+  res.json(await readCategories());
+});
+
+app.post("/api/gallery/categories", requireAuth, async (req, res) => {
+  const { label } = req.body || {};
+  if (typeof label !== "string" || !label.trim()) {
+    return res.status(400).json({ error: "Category name is required." });
+  }
+
+  try {
+    const category = await addCategory(label);
+    res.status(201).json(category);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/api/gallery/categories/:key", requireAuth, async (req, res) => {
+  try {
+    const removed = await removeCategory(req.params.key);
+    if (!removed) return res.status(404).json({ error: "Category not found." });
+    res.json({ removed });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // Issues a token so the browser can upload the photo file directly to
@@ -77,7 +94,8 @@ app.post("/api/gallery", requireAuth, async (req, res) => {
   if (typeof url !== "string" || !url) {
     return res.status(400).json({ error: "Photo URL is required." });
   }
-  if (!Object.keys(CATEGORIES).includes(category)) {
+  const categories = await readCategories();
+  if (!Object.keys(categories).includes(category)) {
     return res.status(400).json({ error: "Unknown category." });
   }
 

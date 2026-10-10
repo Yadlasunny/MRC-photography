@@ -121,18 +121,75 @@
   font-size: 0.85rem;
 }
 
-.admin-password-panel {
-  max-width: 380px;
-  margin-top: 3.5rem;
-  padding-top: 2.5rem;
-  border-top: 1px solid rgba(194, 161, 98, 0.15);
-}
-
 .admin-subtitle {
   font-family: var(--font-head);
   font-weight: 600;
   font-size: 1.3rem;
   margin: 0 0 1.6rem;
+}
+
+.admin-category-panel {
+  max-width: 480px;
+  margin-bottom: 3rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid rgba(194, 161, 98, 0.15);
+}
+
+.admin-category-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 0 1.4rem;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-category-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-panel);
+  border: 1px solid rgba(139, 133, 128, 0.35);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.4rem 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.admin-category-chip .admin-category-count {
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+}
+
+.admin-category-chip .admin-category-remove {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius);
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.admin-category-chip .admin-category-remove:hover {
+  color: #e08585;
+}
+
+.admin-form--inline {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.admin-form--inline label {
+  flex: 1;
+  min-width: 180px;
+}
+
+.admin-form--inline .admin-error {
+  flex-basis: 100%;
 }
 
 .admin-form--upload {

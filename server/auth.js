@@ -1,9 +1,5 @@
 import crypto from "node:crypto";
-import bcrypt from "bcryptjs";
 
-import { getRedisClient } from "./redis-client.js";
-
-const ADMIN_KEY = "mrc:admin";
 const COOKIE_NAME = "mrc_auth";
 const MAX_AGE_MS = 1000 * 60 * 60 * 8; // 8 hours
 
@@ -46,16 +42,12 @@ function cookieOptions() {
   };
 }
 
-async function readAdmin() {
-  const redis = await getRedisClient();
-  const raw = await redis.get(ADMIN_KEY);
-  if (!raw) return null;
-  return typeof raw === "string" ? JSON.parse(raw) : raw;
-}
-
-async function writeAdmin(admin) {
-  const redis = await getRedisClient();
-  await redis.set(ADMIN_KEY, JSON.stringify(admin));
+// Fixed-length digests so timingSafeEqual never short-circuits on length,
+// which would otherwise leak how many characters matched via timing.
+function safeEqual(a, b) {
+  const bufA = crypto.createHash("sha256").update(String(a)).digest();
+  const bufB = crypto.createHash("sha256").update(String(b)).digest();
+  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 export function requireAuth(req, res, next) {
@@ -63,25 +55,15 @@ export function requireAuth(req, res, next) {
   res.status(401).json({ error: "Not signed in." });
 }
 
-export async function login(req, res) {
+export function login(req, res) {
   const { username, password } = req.body || {};
 
   if (typeof username !== "string" || typeof password !== "string") {
     return res.status(400).json({ error: "Username and password are required." });
   }
 
-  const admin = await readAdmin();
-  if (!admin) {
-    return res.status(500).json({
-      error: "No admin account is set up yet. Run: node scripts/set-admin-password.js",
-    });
-  }
-
-  const validUsername = username === admin.username;
-  // Always run bcrypt.compare, even on a bad username, so response timing
-  // doesn't reveal whether the username was correct.
-  const hash = validUsername ? admin.passwordHash : "$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva";
-  const validPassword = await bcrypt.compare(password, hash);
+  const validUsername = safeEqual(username, process.env.ADMIN_USERNAME || "");
+  const validPassword = safeEqual(password, process.env.ADMIN_PASSWORD || "");
 
   if (!validUsername || !validPassword) {
     return res.status(401).json({ error: "Incorrect username or password." });
@@ -98,26 +80,4 @@ export function logout(req, res) {
 
 export function sessionStatus(req, res) {
   res.json({ authenticated: isValidToken(req.cookies?.[COOKIE_NAME]) });
-}
-
-export async function changePassword(req, res) {
-  const { currentPassword, newPassword } = req.body || {};
-
-  if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
-    return res.status(400).json({ error: "Current and new password are required." });
-  }
-  if (newPassword.length < 8) {
-    return res.status(400).json({ error: "New password must be at least 8 characters." });
-  }
-
-  const admin = await readAdmin();
-  const validCurrent = admin && (await bcrypt.compare(currentPassword, admin.passwordHash));
-  if (!validCurrent) {
-    return res.status(401).json({ error: "Current password is incorrect." });
-  }
-
-  const newHash = await bcrypt.hash(newPassword, 12);
-  await writeAdmin({ username: admin.username, passwordHash: newHash });
-
-  res.json({ success: true });
 }

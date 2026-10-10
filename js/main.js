@@ -55,7 +55,7 @@ heroPhoto.src = "/assets/images/hero.jpg";
 // ---- Gallery ----
 const galleryGrid = document.getElementById("gallery-grid");
 const galleryEmpty = document.getElementById("gallery-empty");
-const filterButtons = document.querySelectorAll(".filter-btn");
+const galleryFilters = document.getElementById("gallery-filters");
 
 const revealObserver = new IntersectionObserver(
   (entries) => {
@@ -80,18 +80,41 @@ function buildFallback(item, entry) {
       <span class="vf-corner br"></span>
       <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="24" cy="24" r="16"/><circle cx="24" cy="24" r="4" fill="currentColor" stroke="none"/></svg>
     </div>
-    <span class="fallback-text">${entry.categoryLabel} — Photo coming soon</span>
+    <span class="fallback-text">${entry.categoryLabel} - Photo coming soon</span>
   `;
   item.appendChild(fallback);
   item.classList.add("img-missing");
 }
 
 function applyActiveFilter() {
-  const activeFilter = document.querySelector(".filter-btn.active")?.dataset.filter || "all";
+  const activeFilter = galleryFilters.querySelector(".filter-btn.active")?.dataset.filter || "all";
   galleryGrid.querySelectorAll(".gallery-item").forEach((item) => {
     const matches = activeFilter === "all" || item.dataset.category === activeFilter;
     item.classList.toggle("is-hidden", !matches);
   });
+}
+
+function addFilterButton(key, label) {
+  const button = document.createElement("button");
+  button.className = "filter-btn";
+  button.dataset.filter = key;
+  button.textContent = label;
+  button.addEventListener("click", () => {
+    galleryFilters.querySelectorAll(".filter-btn").forEach((btn) => btn.classList.remove("active"));
+    button.classList.add("active");
+    applyActiveFilter();
+  });
+  galleryFilters.appendChild(button);
+}
+
+async function loadCategoryFilters() {
+  try {
+    const res = await fetch("/api/gallery/categories");
+    const categories = await res.json();
+    Object.entries(categories).forEach(([key, label]) => addFilterButton(key, label));
+  } catch (err) {
+    console.error("Could not load categories", err);
+  }
 }
 
 function renderGallery(entries) {
@@ -133,12 +156,10 @@ async function loadGallery() {
   }
 }
 
-filterButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    filterButtons.forEach((btn) => btn.classList.remove("active"));
-    button.classList.add("active");
-    applyActiveFilter();
-  });
+galleryFilters.querySelector('[data-filter="all"]').addEventListener("click", (e) => {
+  galleryFilters.querySelectorAll(".filter-btn").forEach((btn) => btn.classList.remove("active"));
+  e.target.classList.add("active");
+  applyActiveFilter();
 });
 
-loadGallery();
+loadCategoryFilters().then(loadGallery);
