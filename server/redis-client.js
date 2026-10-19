@@ -7,9 +7,20 @@ let clientPromise;
 
 export function getRedisClient() {
   if (!clientPromise) {
-    const client = createClient({ url: process.env.REDIS_URL });
+    // Fail fast instead of retrying forever, otherwise a bad REDIS_URL hangs
+    // each request until Vercel's function timeout (504).
+    const client = createClient({
+      url: process.env.REDIS_URL,
+      socket: { connectTimeout: 5000, reconnectStrategy: false },
+    });
     client.on("error", (err) => console.error("Redis client error:", err));
-    clientPromise = client.connect().then(() => client);
+    clientPromise = client.connect().then(
+      () => client,
+      (err) => {
+        clientPromise = undefined; // allow a retry on the next request
+        throw err;
+      }
+    );
   }
   return clientPromise;
 }
