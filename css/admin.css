@@ -60,6 +60,16 @@
   border-radius: var(--radius);
 }
 
+.admin-form select {
+  color-scheme: dark;
+}
+
+.admin-form select option {
+  background: #1a1a1d;
+  color: #f2efe9;
+  opacity: 1;
+}
+
 .admin-form input:focus,
 .admin-form select:focus {
   outline: none;
